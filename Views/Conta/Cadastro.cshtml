@@ -1,0 +1,27 @@
+﻿@model CadastroViewModel
+@{ ViewData["Title"] = "Criar conta"; }
+<div class="auth-page mx-auto">
+    <div class="card auth-card">
+        <div class="auth-logo-area"><img class="auth-logo" src="~/images/logo-requisita.png" asp-append-version="true" alt="Requisita+" width="2159" height="728" /></div>
+        <div class="auth-content">
+        <div class="auth-header"><p class="eyebrow mb-2">Comece por aqui</p><h1>Criar conta</h1><p class="text-muted mb-0">Organize os requisitos do seu software em um só lugar.</p></div>
+        <form asp-action="Cadastro" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+            <input asp-for="ReturnUrl" type="hidden" />
+            <div class="mb-3"><label asp-for="Email" class="form-label"></label><input asp-for="Email" class="form-control" autocomplete="username" aria-describedby="EmailErro" /><span asp-validation-for="Email" id="EmailErro" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="Senha" class="form-label"></label><div class="password-field">
+                    <input asp-for="Senha" type="password" class="form-control" autocomplete="new-password" aria-describedby="SenhaAjuda SenhaErro" />
+                    <partial name="_PasswordToggle" model='@("Senha")' />
+                </div><p id="SenhaAjuda" class="form-text mb-0">Use pelo menos 8 caracteres, com letra maiúscula, minúscula, número e símbolo.</p><span asp-validation-for="Senha" id="SenhaErro" class="text-danger"></span></div>
+            <div class="mb-4"><label asp-for="ConfirmacaoSenha" class="form-label"></label><div class="password-field">
+                    <input asp-for="ConfirmacaoSenha" type="password" class="form-control" autocomplete="new-password" aria-describedby="ConfirmacaoErro" />
+                    <partial name="_PasswordToggle" model='@("ConfirmacaoSenha")' />
+                </div><span asp-validation-for="ConfirmacaoSenha" id="ConfirmacaoErro" class="text-danger"></span></div>
+            <button type="submit" class="btn btn-primary w-100">Criar conta</button>
+        </form>
+        <p class="auth-switch">Já tem conta? <a asp-action="Login" asp-route-returnUrl="@Model.ReturnUrl">Entrar</a></p>
+        </div>
+    </div>
+    <p class="auth-help"><a asp-controller="Home" asp-action="Ajuda">Precisa de ajuda para começar?</a></p>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

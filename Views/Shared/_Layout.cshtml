@@ -1,0 +1,57 @@
+﻿@{
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+    var action = ViewContext.RouteData.Values["action"]?.ToString();
+    var inicio = controller == "Home" && action == "Index";
+    var requisitos = controller == "Requisitos" && action != "Create";
+    var novo = controller == "Requisitos" && action == "Create";
+    var ajuda = controller == "Home" && action == "Ajuda";
+}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>@ViewData["Title"] · Requisita+</title>
+<link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+<link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+<a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+<header class="app-header">
+<nav class="navbar navbar-expand-lg container app-nav" aria-label="Navegação principal">
+    <a class="brand brand-logo-area" asp-controller="Home" asp-action="Index"><img class="brand-logo" src="~/images/logo-requisita.png" asp-append-version="true" alt="Requisita+" width="2159" height="728" /></a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuPrincipal" aria-controls="menuPrincipal" aria-expanded="false" aria-label="Abrir ou fechar menu"><span class="navbar-toggler-icon"></span></button>
+    <div class="collapse navbar-collapse" id="menuPrincipal">
+        <ul class="navbar-nav main-links">
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+            <li class="nav-item"><a class="nav-link @(inicio ? "active" : "")" aria-current="@(inicio ? "page" : null)" asp-controller="Home" asp-action="Index">Início</a></li>
+            <li class="nav-item"><a class="nav-link @(requisitos ? "active" : "")" aria-current="@(requisitos ? "page" : null)" asp-controller="Requisitos" asp-action="Index">Requisitos</a></li>
+            <li class="nav-item"><a class="nav-link @(novo ? "active" : "")" aria-current="@(novo ? "page" : null)" asp-controller="Requisitos" asp-action="Create">Novo requisito</a></li>
+            }
+            <li class="nav-item"><a class="nav-link @(ajuda ? "active" : "")" aria-current="@(ajuda ? "page" : null)" asp-controller="Home" asp-action="Ajuda">Ajuda</a></li>
+        </ul>
+        <div class="account-nav">
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <span class="small text-muted account-name" title="@User.Identity.Name"><span class="visually-hidden">Conta: </span>@User.Identity.Name</span>
+            <form asp-controller="Conta" asp-action="Logout" method="post"><button class="btn btn-outline-secondary btn-sm" type="submit">Sair</button></form>
+        }
+        else
+        {
+            <a class="account-link" asp-controller="Conta" asp-action="Login">Entrar</a>
+            <a class="btn btn-outline-primary btn-sm" asp-controller="Conta" asp-action="Cadastro">Criar conta</a>
+        }
+        </div>
+    </div>
+</nav>
+</header>
+<main id="conteudo" class="container py-4 py-md-5" tabindex="-1">
+@if (TempData["Sucesso"] is string sucesso) { <div class="alert alert-success" role="status">@sucesso</div> }
+@if (TempData["Erro"] is string erro) { <div class="alert alert-danger" role="alert">@erro</div> }
+@RenderBody()
+</main>
+<footer class="container py-4 app-footer">Requisita+ · Gerenciamento de requisitos de software</footer>
+<script src="~/lib/jquery/dist/jquery.min.js"></script><script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="~/js/site.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body></html>

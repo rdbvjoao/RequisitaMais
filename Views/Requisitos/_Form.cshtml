@@ -1,0 +1,19 @@
+@model Requisito
+<div asp-validation-summary="ModelOnly" role="alert"></div>
+<h2 class="h6 section-heading">Informações do requisito</h2>
+<p class="small text-muted">Todos os campos são obrigatórios.</p>
+<div class="mb-3">
+    <label asp-for="Titulo" class="form-label"></label>
+    <input asp-for="Titulo" class="form-control" placeholder="Ex.: Permitir o cadastro de clientes" maxlength="150" />
+    <span asp-validation-for="Titulo" class="small"></span>
+</div>
+<div class="mb-3">
+    <label asp-for="Descricao" class="form-label"></label>
+    <textarea asp-for="Descricao" class="form-control" rows="6" maxlength="5000" placeholder="Descreva o comportamento ou a característica esperada."></textarea>
+    <span asp-validation-for="Descricao" class="small"></span>
+</div>
+<div class="row g-3 mb-4">
+    <div class="col-md-6"><label asp-for="Tipo" class="form-label"></label><select asp-for="Tipo" class="form-select" asp-items="Html.GetEnumSelectList<TipoRequisito>()"><option value="">Selecione o tipo</option></select><span asp-validation-for="Tipo" class="small"></span></div>
+    <div class="col-md-6"><label asp-for="Status" class="form-label"></label><select asp-for="Status" class="form-select" asp-items="Html.GetEnumSelectList<StatusRequisito>()"><option value="">Selecione o status</option></select><span asp-validation-for="Status" class="small"></span></div>
+</div>
+<div class="action-bar"><button type="submit" class="btn btn-primary px-4">Salvar requisito</button><a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a></div>

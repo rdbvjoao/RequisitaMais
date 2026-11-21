@@ -1,0 +1,21 @@
+@model ResultadoAnalise
+        <h2 class="h5 mb-3">Sugestões para revisão</h2>
+        @if (Model.UsoTokens is { } uso)
+        {
+            <p class="token-info">Tokens informados pela Gemini — Entrada: @(uso.Entrada?.ToString() ?? "não informado"); saída: @(uso.Saida?.ToString() ?? "não informado"); total: @(uso.Total?.ToString() ?? "não informado").</p>
+        }
+        @if (Model.Problemas.Count == 0)
+        {
+            <div class="alert alert-info">A IA não identificou problemas nesta análise. Isso não garante que o requisito esteja completo ou livre de ambiguidades. Revise-o com os responsáveis pelo projeto.</div>
+        }
+        @foreach (var problema in Model.Problemas)
+        {
+            <article class="card p-4 mb-3 analysis-result">
+                <h3 class="h5">@problema.Categoria</h3>
+                <dl class="mb-0">
+                    <dt>Problema encontrado</dt><dd class="description text-break">@problema.Problema</dd>
+                    <dt>Justificativa</dt><dd class="description text-break">@problema.Justificativa</dd>
+                    <dt>Sugestão de melhoria</dt><dd class="description text-break suggestion-copy mb-0">@problema.Sugestao</dd>
+                </dl>
+            </article>
+        }

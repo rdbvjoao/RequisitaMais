@@ -1,0 +1,17 @@
+﻿@model NovaSenhaViewModel
+@{ ViewData["Title"] = "Nova senha"; }
+<div class="auth-page mx-auto"><div class="card auth-card">
+    <partial name="_Logo" />
+    <div class="auth-content">
+        <div class="auth-header"><p class="eyebrow mb-2">Recupere seu acesso</p><h1>Defina sua nova senha</h1><p class="text-muted mb-0">Conclua antes de completar 5 minutos desde a solicitação do código.</p></div>
+        <form asp-action="NovaSenha" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+            <div class="mb-3"><label asp-for="Senha" class="form-label"></label><div class="password-field"><input asp-for="Senha" class="form-control" autocomplete="new-password" aria-describedby="SenhaAjuda SenhaErro" /><partial name="_PasswordToggle" model='@("Senha")' /></div><p id="SenhaAjuda" class="form-text mb-0">Use pelo menos 8 caracteres, com letra maiúscula, minúscula, número e símbolo.</p><span asp-validation-for="Senha" id="SenhaErro" class="text-danger"></span></div>
+            <div class="mb-4"><label asp-for="ConfirmacaoSenha" class="form-label"></label><div class="password-field"><input asp-for="ConfirmacaoSenha" class="form-control" autocomplete="new-password" aria-describedby="ConfirmacaoErro" /><partial name="_PasswordToggle" model='@("ConfirmacaoSenha")' /></div><span asp-validation-for="ConfirmacaoSenha" id="ConfirmacaoErro" class="text-danger"></span></div>
+            <button type="submit" class="btn btn-primary w-100">Redefinir senha</button>
+        </form>
+        <p class="auth-switch"><a asp-action="Solicitar">Solicitar novo código</a></p>
+        <p class="auth-switch"><a asp-controller="Conta" asp-action="Login">Voltar ao login</a></p>
+    </div>
+</div></div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

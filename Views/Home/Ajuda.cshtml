@@ -1,0 +1,48 @@
+﻿@{ ViewData["Title"] = "Central de Ajuda"; }
+<div class="page-header"><p class="eyebrow mb-2">Orientações de uso</p><h1>Central de Ajuda</h1><p class="text-muted mb-0">Encontre o próximo passo e entenda os conceitos usados no Requisita+.</p></div>
+<nav class="help-topics mb-4" aria-label="Tópicos da ajuda">
+    <a href="#primeiros-passos">Primeiros passos</a><a href="#gerenciamento">Requisitos</a><a href="#inteligencia-artificial">Análise com IA</a><a href="#revisao-humana">Revisão humana</a><a href="#historico">Histórico</a><a href="#glossario">Glossário</a>
+</nav>
+<div class="help-content">
+<section id="primeiros-passos" class="card help-section" aria-labelledby="titulo-primeiros">
+    <h2 id="titulo-primeiros">Primeiros passos</h2>
+    <details open><summary>Como criar uma conta e entrar?</summary><div class="help-answer"><p>Acesse <a asp-controller="Conta" asp-action="Cadastro">Criar conta</a>, informe seu e-mail, escolha uma senha e confirme a senha. Siga as orientações do formulário e clique em Criar conta. Após o cadastro, você já estará conectado.</p><p>Se já tem conta, acesse <a asp-controller="Conta" asp-action="Login">Entrar</a> e informe seu e-mail e senha. O acesso leva ao dashboard ou à página protegida que você tentou abrir antes de entrar.</p></div></details>
+    <details><summary>Como navegar pelo sistema?</summary><div class="help-answer"><p>Em <a asp-controller="Home" asp-action="Index">Início</a>, o dashboard mostra o total de requisitos, a quantidade em cada status e os cinco cadastros mais recentes. Use Ver detalhes para abrir um deles.</p><p>O menu <a asp-controller="Requisitos" asp-action="Index">Requisitos</a> abre o gerenciamento completo. Novo requisito abre o cadastro. No celular, use o botão de menu para exibir as opções. Para encerrar sua sessão, clique em Sair.</p></div></details>
+</section>
+<section id="gerenciamento" class="card help-section" aria-labelledby="titulo-gerenciamento">
+    <h2 id="titulo-gerenciamento">Gerenciamento de requisitos</h2>
+    <details><summary>Como cadastrar, consultar e editar?</summary><div class="help-answer"><p>Acesse <a asp-controller="Requisitos" asp-action="Create">Novo requisito</a>, preencha título e descrição, selecione o tipo e o status e salve o formulário. Descreva o comportamento ou a condição esperada de forma verificável.</p><p>Na listagem de Requisitos, use Detalhes para consultar o conteúdo e Editar para atualizar os campos. Confira as mensagens do formulário antes de salvar.</p></div></details>
+    <details><summary>Qual é a diferença entre funcional e não funcional?</summary><div class="help-answer"><p><strong>Funcional:</strong> descreve o que o sistema deve fazer. Exemplo: “O sistema deve permitir cadastrar um requisito.”</p><p><strong>Não funcional:</strong> descreve uma qualidade ou condição de funcionamento. Exemplo: “A listagem deve carregar em até dois segundos nas condições de teste definidas.” Os critérios devem ser definidos pelos responsáveis pelo projeto.</p></div></details>
+    <details><summary>Como usar os filtros?</summary><div class="help-answer"><p>Na página Requisitos, selecione Tipo, Status ou ambos e clique em Filtrar. Use Todos os tipos ou Todos os status para não restringir aquele campo. Clique em Limpar para voltar à lista completa.</p></div></details>
+    <details><summary>O que significam os três status?</summary><div class="help-answer"><ul><li><strong>Pendente:</strong> requisito que aguarda trabalho de análise ou revisão.</li><li><strong>Em análise:</strong> indica que o requisito está em avaliação.</li><li><strong>Revisado:</strong> indica a conclusão da revisão. Quando há sugestões na análise mais recente, todas precisam de uma decisão registrada para concluir essa revisão.</li></ul><p>O status pode ser selecionado no cadastro e na edição, respeitando as validações existentes. Solicitar uma análise à Gemini não muda automaticamente o status para Em análise. Ao confirmar a última decisão pendente da análise mais recente, o sistema marca o requisito como Revisado.</p></div></details>
+</section>
+<section id="inteligencia-artificial" class="card help-section" aria-labelledby="titulo-ia">
+    <h2 id="titulo-ia">Análise com inteligência artificial</h2>
+    <details><summary>Como solicitar uma análise com a Gemini?</summary><div class="help-answer"><p>Salve o requisito e use Analisar com IA na listagem ou nos detalhes. Aguarde a conclusão. A Gemini analisa o <strong>título, o tipo e a descrição salvos</strong>, buscando ambiguidades, falta de clareza, termos vagos e informações incompletas.</p><p>A solicitação faz uma chamada à Gemini e pode consumir tokens. Esta Central de Ajuda é apenas informativa e não solicita análises.</p></div></details>
+    <details><summary>Como interpretar o resultado?</summary><div class="help-answer"><ul><li><strong>Problema:</strong> trecho ou informação que pode dificultar a compreensão do requisito.</li><li><strong>Justificativa:</strong> explica por que o apontamento merece atenção.</li><li><strong>Sugestão:</strong> orientação de melhoria para você avaliar.</li></ul><p>A IA auxilia na revisão, mas não substitui a avaliação humana. Confira cada apontamento no contexto do projeto. A ausência de problemas apontados não garante que o requisito esteja completo ou correto.</p><p>As análises concluídas e salvas com sucesso ficam no histórico. Se houver falha na solicitação ou no armazenamento, consulte a mensagem exibida pelo sistema.</p></div></details>
+</section>
+<section id="revisao-humana" class="card help-section" aria-labelledby="titulo-revisao">
+    <h2 id="titulo-revisao">Revisão humana</h2>
+    <details><summary>Quando usar Aceitar, Ajustar manualmente ou Descartar?</summary><div class="help-answer"><p>No histórico, localize a análise mais recente e clique em Avaliar sugestão. Avalie cada sugestão individualmente:</p><ul><li><strong>Aceitar:</strong> aprovar a sugestão e informar e confirmar a redação final completa do requisito.</li><li><strong>Ajustar manualmente:</strong> elaborar uma redação própria com base na sugestão recebida e confirmar o texto final completo.</li><li><strong>Descartar:</strong> registrar a rejeição da sugestão sem alterar a descrição atual.</li></ul><p>Ao aceitar ou ajustar, a redação final substitui a descrição atual. Confira o texto completo e a opção escolhida antes de confirmar explicitamente a decisão.</p></div></details>
+    <details><summary>Como as decisões e o status Revisado funcionam?</summary><div class="help-answer"><p>As decisões são registradas no histórico, com data, responsável, descrição anterior e redação final quando aplicável. <strong>As decisões confirmadas são definitivas no funcionamento atual.</strong> O texto original da análise da IA é preservado.</p><p>Conclua as decisões de todas as sugestões da análise mais recente para que a revisão marque o requisito como Revisado. Decisões de análises antigas não controlam o status atual; essas análises ficam disponíveis apenas para consulta. Uma análise sem sugestões não provoca essa mudança automática pela revisão humana.</p></div></details>
+</section>
+<section id="historico" class="card help-section" aria-labelledby="titulo-historico">
+    <h2 id="titulo-historico">Histórico de análises</h2>
+    <details><summary>Como consultar análises e decisões anteriores?</summary><div class="help-answer"><p>Abra os Detalhes de um requisito e clique em Histórico de análises. As análises aparecem da mais recente para a mais antiga, com problemas, justificativas, sugestões e o consumo de tokens quando disponível.</p><p>Na seção Revisão humana de cada análise, consulte as decisões registradas, a descrição anterior e a redação final confirmada. O requisito pode ter sido editado depois da análise: considere a data de cada registro.</p><p><strong>Consultar o histórico não faz novas chamadas à Gemini e não consome novos tokens.</strong></p></div></details>
+</section>
+<section id="glossario" class="card help-section" aria-labelledby="titulo-glossario">
+    <h2 id="titulo-glossario">Glossário</h2>
+    <details><summary>Consultar os principais conceitos</summary><div class="help-answer"><dl class="help-glossary">
+        <dt>Requisito funcional</dt><dd>Uma ação ou capacidade que o sistema deve oferecer, como cadastrar um usuário.</dd>
+        <dt>Requisito não funcional</dt><dd>Uma qualidade ou condição do sistema, como desempenho, segurança ou acessibilidade.</dd>
+        <dt>Análise de requisitos</dt><dd>Avaliação do texto para identificar dúvidas, inconsistências e pontos que precisam de definição.</dd>
+        <dt>Ambiguidade</dt><dd>Quando o texto permite mais de uma interpretação. “O usuário informa o código do cliente ou do pedido” pode deixar incerto qual código usar.</dd>
+        <dt>Termo vago</dt><dd>Expressão sem critério verificável, como “rapidamente” ou “facilmente”, quando o contexto não define o que isso significa.</dd>
+        <dt>Falta de clareza</dt><dd>Uma redação que dificulta entender quem faz o quê ou em que condições.</dd>
+        <dt>Informação incompleta</dt><dd>Ausência de dados necessários para compreender ou verificar o requisito, como não informar quais campos são obrigatórios.</dd>
+        <dt>Sugestão de melhoria</dt><dd>Uma proposta para tornar o requisito mais claro, que depende da avaliação de uma pessoa.</dd>
+        <dt>Revisão humana</dt><dd>Avaliação individual das sugestões, com decisão de aceitar, ajustar ou descartar e confirmação do responsável.</dd>
+        <dt>Histórico de análises</dt><dd>Registro das análises armazenadas e das decisões humanas vinculadas a elas.</dd>
+    </dl></div></details>
+</section>
+</div>

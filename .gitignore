@@ -1,0 +1,60 @@
+bin/
+obj/
+.packages/
+.local/
+*.db
+*.db-shm
+*.db-wal
+
+# SQLite journals and alternative database extensions
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+
+# Local backups and database exports
+backup/
+backups/
+*.bak
+*.backup
+*.dump
+*backup*.zip
+*backup*.7z
+*backup*.tar*
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+!.env.template
+secrets.json
+.secrets/
+.aws/
+.ssh/
+appsettings.Local.json
+appsettings.*.local.json
+*.pubxml.user
+
+# Certificates and private keys
+*.pfx
+*.p12
+*.pem
+*.key
+*.crt
+*.cer
+
+# Editor state, logs and temporary files
+.vs/
+.idea/
+*.user
+*.suo
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+*.dmp
+*~
+.DS_Store
+Thumbs.db

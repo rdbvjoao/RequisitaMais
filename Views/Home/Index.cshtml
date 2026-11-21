@@ -1,0 +1,41 @@
+﻿@model DashboardViewModel
+@{ ViewData["Title"] = "Início"; }
+<div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3">
+    <div><p class="eyebrow mb-2">Visão geral</p><h1>Boas-vindas ao Requisita+</h1><p class="text-muted mb-0">Acompanhe seus requisitos e encontre o próximo passo para revisá-los.</p></div>
+    <div class="dashboard-actions" role="group" aria-label="Ações rápidas">
+        <a class="btn btn-primary" asp-controller="Requisitos" asp-action="Create">Novo requisito</a>
+        <a class="btn btn-outline-primary" asp-controller="Requisitos" asp-action="Index">Consultar requisitos</a>
+    </div>
+</div>
+<section aria-labelledby="indicadores" class="mb-4">
+    <h2 id="indicadores" class="visually-hidden">Indicadores de requisitos</h2>
+    <div class="row g-3 mb-0 dashboard-metrics">
+        <div class="col-6 col-lg-3"><dl class="card metric-card mb-0"><dt>Total de requisitos</dt><dd>@Model.Total</dd></dl></div>
+        <div class="col-6 col-lg-3"><dl class="card metric-card mb-0"><dt>Pendentes</dt><dd>@Model.Pendentes</dd></dl></div>
+        <div class="col-6 col-lg-3"><dl class="card metric-card mb-0"><dt>Em análise</dt><dd>@Model.EmAnalise</dd></dl></div>
+        <div class="col-6 col-lg-3"><dl class="card metric-card mb-0"><dt>Revisados</dt><dd>@Model.Revisados</dd></dl></div>
+    </div>
+</section>
+<section class="card overflow-hidden" aria-labelledby="recentes">
+    <div class="table-heading"><h2 id="recentes" class="h5 mb-0">Requisitos recentes</h2><span class="text-muted small">Últimos cinco cadastros</span></div>
+    @if (Model.Recentes.Count == 0)
+    {
+        <div class="empty-state"><h3 class="h5">Seu primeiro requisito começa aqui</h3><p class="text-muted">Cadastre um requisito para começar a organizar e acompanhar seu projeto.</p><a class="btn btn-primary" asp-controller="Requisitos" asp-action="Create">Cadastrar primeiro requisito</a></div>
+    }
+    else
+    {
+        <div class="table-responsive" role="region" aria-label="Requisitos recentes" tabindex="0">
+            <table class="table align-middle mb-0">
+                <caption class="visually-hidden">Os cinco requisitos cadastrados mais recentemente</caption>
+                <thead><tr><th scope="col">Título</th><th scope="col">Tipo</th><th scope="col">Status</th><th scope="col">Cadastrado em</th><th scope="col">Ação</th></tr></thead>
+                <tbody>
+                @foreach (var item in Model.Recentes)
+                {
+                    <tr><td class="requirement-title fw-semibold">@item.Titulo</td><td class="text-nowrap">@Html.DisplayFor(_ => item.Tipo)</td><td><span class="badge status-@((int?)item.Status)">@Html.DisplayFor(_ => item.Status)</span></td><td class="text-nowrap">@item.DataCriacao.ToString("dd/MM/yyyy HH:mm")</td><td><a class="btn btn-sm btn-outline-primary text-nowrap" asp-controller="Requisitos" asp-action="Details" asp-route-id="@item.Id" aria-label="Ver detalhes de @item.Titulo">Ver detalhes</a></td></tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+<aside class="dashboard-help mt-4"><div><h2 class="h6 mb-1">Precisa de orientação?</h2><p class="text-muted mb-0">Consulte os primeiros passos e entenda a análise e a revisão humana.</p></div><a asp-action="Ajuda" class="btn btn-outline-primary">Central de Ajuda</a></aside>

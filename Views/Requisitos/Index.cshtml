@@ -1,0 +1,44 @@
+@model IReadOnlyList<Requisito>
+@{
+    ViewData["Title"] = "Requisitos";
+    var titulo = ViewData["Titulo"] as string;
+    var tipos = new SelectList(Html.GetEnumSelectList<TipoRequisito>(), "Value", "Text", ((TipoRequisito?)ViewData["Tipo"])?.ToString("d"));
+    var status = new SelectList(Html.GetEnumSelectList<StatusRequisito>(), "Value", "Text", ((StatusRequisito?)ViewData["Status"])?.ToString("d"));
+}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 page-header">
+    <div><p class="eyebrow mb-2">Organize seu projeto</p><h1>Requisitos</h1><p class="text-muted mb-0">Cadastre, acompanhe e revise os requisitos do seu software.</p></div>
+    <a class="btn btn-primary px-4 py-2" asp-action="Create">+ Novo requisito</a>
+</div>
+<form method="get" class="card p-3 p-md-4 mb-4" aria-label="Filtrar requisitos">
+    <h2 class="filter-heading">Filtros de requisitos</h2>
+    <div class="row g-3 align-items-end">
+        <div class="col-12 col-lg-4"><label class="form-label" for="titulo">Buscar por título</label><input class="form-control" type="search" id="titulo" name="titulo" value="@titulo" placeholder="Parte do título ou código do requisito" /></div>
+        <div class="col-sm-6 col-lg-2"><label class="form-label" for="tipo">Tipo</label><select class="form-select" id="tipo" name="tipo" asp-items="tipos"><option value="">Todos os tipos</option></select></div>
+        <div class="col-sm-6 col-lg-2"><label class="form-label" for="status">Status</label><select class="form-select" id="status" name="status" asp-items="status"><option value="">Todos os status</option></select></div>
+        <div class="col-12 col-lg-4 d-flex gap-2"><button class="btn btn-primary py-2" type="submit">Filtrar</button><a class="btn btn-outline-secondary py-2" asp-action="Index">Limpar</a></div>
+    </div>
+</form>
+<div class="card overflow-hidden">
+    <div class="table-heading"><h2 class="h6 mb-0">Requisitos cadastrados</h2><span class="text-muted small">@Model.Count @(Model.Count == 1 ? "requisito encontrado" : "requisitos encontrados")</span></div>
+    @if (Model.Count == 0)
+    {
+        <div class="empty-state"><span class="empty-symbol" aria-hidden="true">&#8801;</span><h2 class="h5">Nenhum requisito encontrado</h2><p class="text-muted">Nenhum requisito corresponde aos critérios informados. Ajuste a busca ou os filtros, ou clique em Limpar para consultar todos.</p><a asp-action="Create" class="btn btn-outline-primary">Cadastrar requisito</a></div>
+    }
+    else
+    {
+        <div class="table-responsive" role="region" aria-label="Requisitos cadastrados" tabindex="0"><table class="table align-middle mb-0">
+            <caption class="visually-hidden">Requisitos cadastrados e ações disponíveis</caption>
+            <thead><tr><th scope="col">Título</th><th scope="col">Tipo</th><th scope="col">Status</th><th scope="col">Criado em</th><th scope="col">Ações</th></tr></thead>
+            <tbody>@foreach (var item in Model)
+            {
+                <tr>
+                    <td class="requirement-title"><a class="fw-semibold text-decoration-none" asp-action="Details" asp-route-id="@item.Id">@item.Titulo</a></td>
+                    <td class="text-nowrap">@Html.DisplayFor(_ => item.Tipo)</td>
+                    <td><span class="badge status-@((int?)item.Status)">@Html.DisplayFor(_ => item.Status)</span></td>
+                    <td class="text-nowrap small">@item.DataCriacao.ToString("dd/MM/yyyy HH:mm")</td>
+                    <td><div class="actions text-nowrap"><a class="btn btn-sm btn-outline-secondary" asp-action="Details" asp-route-id="@item.Id" aria-label="Detalhes de @item.Titulo">Detalhes</a> <a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@item.Id" aria-label="Editar @item.Titulo">Editar</a> <partial name="_Analisar" model="item" /> <a class="btn btn-sm btn-outline-danger" asp-action="Delete" asp-route-id="@item.Id" aria-label="Excluir @item.Titulo">Excluir</a></div></td>
+                </tr>
+            }</tbody>
+        </table></div>
+    }
+</div>

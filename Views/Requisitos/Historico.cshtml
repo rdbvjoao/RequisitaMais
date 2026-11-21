@@ -1,0 +1,60 @@
+@model HistoricoAnalisesViewModel
+@{ ViewData["Title"] = "Histórico de análises"; }
+<div class="form-card analysis-page mx-auto">
+    <a asp-action="Details" asp-route-id="@Model.Requisito.Id" class="back-link">← Voltar ao requisito</a>
+    <h1 class="mt-3">Histórico de análises</h1>
+    <p class="text-muted">@Model.Requisito.Titulo</p>
+    <p class="alert alert-info">As sugestões podem conter falhas e precisam de revisão humana. Os resultados abaixo foram armazenados na data indicada; consultar o histórico não executa novas chamadas à Gemini. O requisito pode ter sido editado após a análise.</p>
+    @if (Model.Analises.Count == 0)
+    {
+        <div class="alert alert-info">Nenhuma análise armazenada para este requisito.</div>
+    }
+    @foreach (var analise in Model.Analises)
+    {
+        <section class="card p-4 mb-4" aria-labelledby="analise-@analise.Id">
+            <div class="history-header">
+                <h2 id="analise-@analise.Id">@analise.DataAnalise.ToString("dd/MM/yyyy 'às' HH:mm:ss")</h2>
+                <span class="badge @(analise.Id == Model.Analises[0].Id ? "status-2" : "bg-light text-muted")">@(analise.Id == Model.Analises[0].Id ? "Análise mais recente" : "Análise anterior")</span>
+            </div>
+            <partial name="_ResultadoAnalise" model="analise.ObterResultado()" />
+            <div class="history-entry"><h3 class="h5">Revisão humana</h3><p class="text-muted small">@analise.Decisoes.Count de @analise.ObterResultado().Problemas.Count sugestões com decisão registrada</p></div>
+            @if (analise.Id != Model.Analises[0].Id)
+            {
+                <p class="text-muted">Análise antiga: somente consulta. Suas decisões não controlam o status atual.</p>
+            }
+            @for (var indice = 0; indice < analise.ObterResultado().Problemas.Count; indice++)
+            {
+                var decisao = analise.Decisoes.SingleOrDefault(d => d.IndiceSugestao == indice);
+                <div class="review-record">
+                    <h4 class="h6">Sugestão @(indice + 1)</h4>
+                    @if (decisao is not null)
+                    {
+                        <p><span class="badge status-3">Decisão registrada: @(decisao.Decisao == TipoDecisaoSugestao.Ajustar ? "Ajustar" : decisao.Decisao.ToString())</span><span class="d-block text-muted small mt-2">@decisao.DataDecisao.ToString("dd/MM/yyyy 'às' HH:mm:ss")</span></p>
+                        <details class="small text-muted mb-3"><summary>Identificador do responsável pela decisão</summary><p class="text-break mt-2 mb-0">@decisao.UsuarioId</p></details>
+                        <dl>
+                            <dt>Descrição antes da decisão</dt><dd class="description text-break">@decisao.DescricaoAnterior</dd>
+                            @if (decisao.RedacaoFinal is not null)
+                            {
+                                <dt>Redação final confirmada nesta decisão</dt><dd class="description text-break">@decisao.RedacaoFinal</dd>
+                            }
+                            else
+                            {
+                                <dt>Texto preservado</dt><dd>A sugestão foi descartada sem alterar a descrição.</dd>
+                            }
+                        </dl>
+                    }
+                    else if (analise.Id == Model.Analises[0].Id)
+                    {
+                        <p class="small text-muted">Aguardando sua avaliação. Você pode aceitar, ajustar ou descartar esta sugestão.</p>
+                        <a asp-action="Revisar" asp-route-id="@analise.Id" asp-route-indice="@indice" class="btn btn-outline-primary">Avaliar sugestão @(indice + 1)</a>
+                    }
+                    else
+                    {
+                        <p>Sem decisão registrada.</p>
+                    }
+                </div>
+            }
+        </section>
+    }
+    <a asp-action="Details" asp-route-id="@Model.Requisito.Id" class="btn btn-primary">Voltar ao requisito</a>
+</div>

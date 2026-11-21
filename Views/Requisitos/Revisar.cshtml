@@ -1,0 +1,45 @@
+@model RevisarSugestaoViewModel
+@{ ViewData["Title"] = "Revisar sugestão"; }
+<div class="form-card analysis-page mx-auto">
+    <a asp-action="Historico" asp-route-id="@Model.Requisito!.Id" class="back-link">← Voltar ao histórico</a>
+    <h1 class="mt-3">Revisar sugestão @(Model.IndiceSugestao + 1)</h1>
+    <p>@Model.Requisito.Titulo</p>
+    <dl class="card p-4">
+        <dt>Descrição atual</dt><dd class="description text-break">@Model.Requisito.Descricao</dd>
+        <dt>Problema</dt><dd class="description text-break">@Model.Sugestao!.Problema</dd>
+        <dt>Justificativa</dt><dd class="description text-break">@Model.Sugestao.Justificativa</dd>
+        <dt>Sugestão original da IA</dt><dd class="description text-break suggestion-copy mb-0">@Model.Sugestao.Sugestao</dd>
+    </dl>
+    <form asp-action="Revisar" method="post" class="card p-4 mt-4">
+        <h2 class="h5 mb-1">Sua decisão</h2>
+        <p class="text-muted small">Compare a sugestão com a descrição atual e escolha como deseja prosseguir.</p>
+        <div class="decision-guide" id="guia-decisao">
+            <div class="decision-option decision-accept"><strong>Aceitar</strong><p>Concorde com a sugestão e escreva a descrição completa que será salva.</p></div>
+            <div class="decision-option"><strong>Ajustar</strong><p>Adapte a sugestão e escreva a descrição completa com os ajustes validados.</p></div>
+            <div class="decision-option decision-discard"><strong>Descartar</strong><p>Mantenha a descrição atual. Deixe a redação final vazia.</p></div>
+        </div>
+        <div asp-validation-summary="ModelOnly" role="alert"></div>
+        <input asp-for="AnaliseId" type="hidden" />
+        <input asp-for="IndiceSugestao" type="hidden" />
+        <input asp-for="VersaoRequisito" type="hidden" />
+        <div class="mb-3">
+            <label asp-for="Decisao" class="form-label">Decisão</label>
+            <select asp-for="Decisao" asp-items="Html.GetEnumSelectList<TipoDecisaoSugestao>()" class="form-select" aria-describedby="guia-decisao"><option value="">Selecione</option></select>
+            <span asp-validation-for="Decisao"></span>
+        </div>
+        <p class="small text-muted" id="orientacao-redacao">Para aceitar ou ajustar, escreva a descrição completa que deve substituir a descrição atual, incorporando as decisões anteriores. Confirme apenas informações validadas com os responsáveis. A orientação da IA não é aplicada automaticamente. Para descartar, deixe a redação vazia; a descrição atual será mantida.</p>
+        <div class="mb-3">
+            <label asp-for="RedacaoFinal" class="form-label">Redação final completa</label>
+            <textarea asp-for="RedacaoFinal" class="form-control" rows="8" aria-describedby="orientacao-redacao" maxlength="5000"></textarea>
+            <span asp-validation-for="RedacaoFinal"></span>
+        </div>
+        <div class="form-check mb-3 confirmation-box">
+            <input asp-for="Confirmacao" class="form-check-input" />
+            <label asp-for="Confirmacao" class="form-check-label">Confirmo esta decisão e, ao aceitar ou ajustar, que a redação final está completa e validada por mim.</label>
+            <span asp-validation-for="Confirmacao"></span>
+        </div>
+        <p class="text-muted">A decisão confirmada ficará registrada e não poderá ser alterada. O status será atualizado para Revisado somente após todas as sugestões desta análise terem decisões.</p>
+        <div class="action-bar"><button type="submit" class="btn btn-primary">Confirmar decisão</button>
+        <a asp-action="Historico" asp-route-id="@Model.Requisito.Id" class="btn btn-outline-secondary">Cancelar</a></div>
+    </form>
+</div>
