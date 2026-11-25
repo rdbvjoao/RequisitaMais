@@ -48,7 +48,7 @@ await using (var scope = app.Services.CreateAsyncScope())
     var users = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
     foreach (var email in new[] { "alice@example.invalid", "bob@example.invalid" })
         if (!(await users.CreateAsync(new IdentityUser { UserName = email, Email = email }, "Anterior@123")).Succeeded) throw new Exception("Seed");
-    db.Requisitos.Add(new Requisito { Titulo = "Requisito sintético", Descricao = "Preservar este requisito sintético", Tipo = TipoRequisito.Funcional });
+    db.Requisitos.Add(new Requisito { ProprietarioId = (await users.FindByEmailAsync("alice@example.invalid"))!.Id, Titulo = "Requisito sintético", Descricao = "Preservar este requisito sintético", Tipo = TipoRequisito.Funcional });
     await db.SaveChangesAsync();
 }
 await app.StartAsync();

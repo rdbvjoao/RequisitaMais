@@ -1,0 +1,130 @@
+REQUISITA+ — CORREÇÃO PONTUAL DOS TOKENS LEGADOS — 25/11/2026
+
+Resultado: implementação concluída. Aplicação principal encerrada, conferida
+antes e depois pelos processos e respectivas linhas de comando. Somente hosts
+de teste foram iniciados, em portas locais aleatórias e com bancos isolados.
+Aguardar autorização para iniciar a aplicação principal e fazer testes manuais.
+
+Correção técnica
+
+O binder MVC transforma strings vazias em null, impedindo a comparação com o
+token legado literal vazio. Edit deixa o token fora do Bind do modelo e usa o
+mesmo validador de formulário de DeleteConfirmed. O validador exige exatamente
+um valor no campo VersaoConcorrencia, rejeita null e espaços e compara com
+StringComparison.Ordinal. Vazio só é aceito quando explicitamente enviado e
+igual ao vazio armazenado. Query string não substitui campo ausente no form.
+O token validado é repassado ao modelo exibido em erros de validação.
+
+Não houve alteração em modelos, contexto, migrations ou snapshot nesta etapa.
+IsConcurrencyToken e a geração existente de GUID N em alterações efetivas
+continuam ativos. Um envio sem mudanças não preenche tokens legados. Filtros
+por usuário, antiforgery e bloqueio de exclusão com histórico foram preservados.
+
+Arquivos desta etapa
+
+Controllers/RequisitosController.cs
+Views/Requisitos/Analisar.cshtml
+Views/Home/Ajuda.cshtml
+tools/IsolationChecks/Program.cs (opção para não executar LibrarySeed e nova suíte)
+tools/IsolationChecks/LegacyRegression.cs (novo)
+docs/correcao-concorrencia-legados-2026-11-25.txt (este relatório)
+
+Utilitários/evidências locais adicionais, ignorados pelo Git:
+.local/legacy-safety.cjs
+.local/legacy-isolation-results.txt
+.local/legacy-password-results.txt
+.local/legacy-gemini-results.txt
+.local/legacy-email-results.txt
+.local/isolation-9248cf31346749e58af8d0cd18bf5fd0/results.json
+.local/isolation-9248cf31346749e58af8d0cd18bf5fd0/migration-result.json
+
+Preservação
+
+Backup novo validado:
+.local/backups/pre-legacy-concurrency-2026-11-25T09-58-57-520Z/requisita-plus.db
+No mesmo diretório: manifest.json, verification.json, original.db (cópia física)
+e final-integrity-copy.db (cópia para conferência final sem abrir a origem).
+
+Banco real, SHA-256 idêntico antes e depois:
+f66690db2b99b8f2454398ff11ea206c60d5a81f4174d07a7f0c1f4c09db9d1f
+Backup SQLite consistente, SHA-256:
+359670dc4fccba7e81c45a08cd059baeae0653437e1beb7b6a82797e2da67bc4
+O backup lógico tem hash próprio; original.db preserva os bytes da origem.
+WAL, SHM e journal ausentes antes e depois. Nenhum foi excluído manualmente.
+Contagens antes/depois: 101 requisitos, 32 análises, 18 decisões, 3 usuários,
+6 registros de migrations. integrity_check: ok; foreign_key_check: zero violações.
+As verificações de integridade foram feitas sobre cópias dos bytes da origem.
+Backups anteriores não foram modificados.
+
+O manifest registra hashes dos arquivos de código existentes no início. Ao
+compará-los no final, apenas os quatro arquivos existentes listados nesta etapa
+mudaram; o teste e este relatório foram acrescentados. Todas as demais alterações
+anteriores, inclusive migrations e ferramentas, foram preservadas byte a byte.
+
+Verificações automatizadas
+
+IsolationChecks: 291 aprovadas (118 anteriores + 173 novas), zero reprovadas.
+PasswordRecoveryChecks: 95 aprovadas, zero reprovadas.
+GeminiChecks: 40 aprovadas, zero reprovadas; HTTP totalmente simulado.
+EmailChecks: 9 aprovadas, zero reprovadas; sem SMTP externo.
+Total contabilizado: 435 verificações aprovadas, zero reprovadas.
+O teste Gemini também conferiu a ausência de vazamento da credencial real,
+somente em memória, sem exibir seu valor ou utilizá-la em chamada externa.
+
+Exceção expressamente exigida pelas restrições desta etapa: não executados os
+5 checks anteriores que invocam LibrarySeed nem os 33 checks de seu catálogo.
+Não é afirmada revalidação desses 38 checks nesta execução.
+
+Evidências principais
+
+ID 103 na cópia atual: Pendente, token vazio, com histórico. POST autorizado de
+edição alterou apenas status para EmAnalise e gerou GUID válido. O segundo POST
+com a versão vazia antiga retornou 409. O banco real não participou do teste.
+Edições isoladas de título, descrição e status tiveram o mesmo comportamento;
+envio sem alteração preservou vazio e edição subsequente com GUID funcionou.
+Edição de novos requisitos com GUID permaneceu coberta pela suíte anterior.
+
+Edit e Delete rejeitaram ausência, duplicidade, adulteração, espaços, padding,
+token obsoleto, vazio contra GUID e mudança de caixa; token somente na query
+também foi recusado. Respostas de validação preservaram token vazio/GUID e
+permitiram correção e reenvio. Formulários renderizaram um único campo de versão.
+
+Exclusão de legado sem histórico foi confirmada na cópia; legado com histórico
+foi mantido com suas análises. Exclusão aberta antes de uma edição retornou 409.
+EF recusou sobrescrita entre dois contextos com token original vazio e com GUID.
+GET/POST de outro usuário retornaram 404, mesmo com token de versão correto.
+Edit/Delete sem antiforgery retornaram 400. As verificações anteriores também
+cobriram análise, histórico, revisão, pesquisa, indicadores e duas contas.
+
+Análise simulada bem-sucedida, com e sem sugestões e a partir dos três status,
+passou para EmAnalise sem aplicar sugestões à descrição. Falhas de HTTP, JSON,
+rede, timeout, INSERT, UPDATE e cancelamento preservaram estado e histórico.
+Revisão parcial, confirmação humana, decisões antigas, conclusão da última
+decisão e conclusão pela edição quando sem sugestões continuaram protegidas.
+
+Textos aplicados literalmente e coerentes com esses testes
+
+Analisar:
+"As sugestões podem conter falhas e precisam de revisão humana. Elas não são
+aplicadas automaticamente à descrição do requisito. Após uma análise concluída
+e salva com sucesso, o status passa para Em análise, inclusive quando não há
+sugestões ou o requisito estava Revisado. Em caso de falha, o status anterior
+é preservado."
+
+Ajuda:
+"Uma análise sem sugestões também deixa o requisito Em análise. Para concluir
+a revisão, marque o requisito como Revisado pela edição."
+
+Validação final e limites
+
+dotnet build --no-restore: êxito, 0 avisos e 0 erros.
+Build de IsolationChecks: êxito, 0 avisos e 0 erros.
+Database.HasPendingModelChanges(): false, verificado pela suíte com cópia isolada.
+git diff --check: aprovado; apenas mensagens informativas sobre LF/CRLF.
+Nenhuma nova dependência, migration ou funcionalidade. Nenhuma chamada real à
+Gemini, execução de LibrarySeed, alteração do banco real, recálculo histórico,
+git add/commit/push ou envio ao GitHub. Sem problema adicional identificado.
+Testes manuais com a aplicação principal ainda pendentes de autorização.
+
+Comando da suíte de isolamento e regressão (executa somente bancos isolados):
+dotnet run --project tools/IsolationChecks/IsolationChecks.csproj --no-build --no-restore -- .local/backups/pre-ownership-2026-11-25T00-38-08-919Z/requisita-plus.db .local/backups/pre-legacy-concurrency-2026-11-25T09-58-57-520Z/requisita-plus.db --skip-library-seed

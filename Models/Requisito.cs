@@ -18,6 +18,9 @@ public enum StatusRequisito
 public class Requisito
 {
     public int Id { get; set; }
+    public string ProprietarioId { get; set; } = null!;
+    public Microsoft.AspNetCore.Identity.IdentityUser? Proprietario { get; set; }
+    public string VersaoConcorrencia { get; set; } = Guid.NewGuid().ToString("N");
 
     [Required(ErrorMessage = "Informe o título.")]
     [StringLength(150, ErrorMessage = "O título deve ter no máximo 150 caracteres.")]

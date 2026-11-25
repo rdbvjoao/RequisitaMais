@@ -14,6 +14,12 @@ namespace RequisitaPlus.Web.Controllers;
 [Authorize]
 public class RequisitosController(RequisitosContext context, ILogger<RequisitosController> logger) : Controller
 {
+    private string? UsuarioId => User.FindFirstValue(ClaimTypes.NameIdentifier);
+    private IQueryable<Requisito> MeusRequisitos => context.Requisitos
+        .Where(r => UsuarioId != null && r.ProprietarioId != null && r.ProprietarioId == UsuarioId);
+    private IQueryable<AnaliseRequisito> MinhasAnalises => context.AnalisesRequisitos
+        .Where(a => UsuarioId != null && a.Requisito.ProprietarioId != null && a.Requisito.ProprietarioId == UsuarioId);
+
     [HttpGet("/Requisitos")]
     [HttpGet("/Requisitos/Index")]
     public async Task<IActionResult> Index(TipoRequisito? tipo, StatusRequisito? status, string? titulo = null)
@@ -22,7 +28,7 @@ public class RequisitosController(RequisitosContext context, ILogger<RequisitosC
         ViewData["Tipo"] = tipo;
         ViewData["Status"] = status;
         ViewData["Titulo"] = titulo;
-        var query = context.Requisitos.AsNoTracking();
+        var query = MeusRequisitos.AsNoTracking();
         if (tipo.HasValue) query = query.Where(r => r.Tipo == tipo);
         if (status.HasValue) query = query.Where(r => r.Status == status);
         var requisitos = await query.OrderByDescending(r => r.DataCriacao).ThenByDescending(r => r.Id).ToListAsync();
@@ -33,7 +39,7 @@ public class RequisitosController(RequisitosContext context, ILogger<RequisitosC
 
     public async Task<IActionResult> Details(int id)
     {
-        var requisito = await context.Requisitos.AsNoTracking().FirstOrDefaultAsync(r => r.Id == id);
+        var requisito = await MeusRequisitos.AsNoTracking().FirstOrDefaultAsync(r => r.Id == id);
         return requisito is null ? NaoEncontrado() : View(requisito);
     }
 
@@ -42,11 +48,11 @@ public class RequisitosController(RequisitosContext context, ILogger<RequisitosC
     [HttpGet]
     public async Task<IActionResult> Historico(int id, CancellationToken cancellationToken)
     {
-        var requisito = await context.Requisitos.AsNoTracking()
+        var requisito = await MeusRequisitos.AsNoTracking()
             .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
         if (requisito is null) return NaoEncontrado();
 
-        var analises = await context.AnalisesRequisitos.AsNoTracking().Include(a => a.Decisoes)
+        var analises = await MinhasAnalises.AsNoTracking().Include(a => a.Decisoes)
             .Where(a => a.RequisitoId == id)
             .OrderByDescending(a => a.DataAnalise).ThenByDescending(a => a.Id)
             .ToListAsync(cancellationToken);
@@ -55,16 +61,16 @@ public class RequisitosController(RequisitosContext context, ILogger<RequisitosC
 
     private static string Versao(Requisito requisito) => Convert.ToHexString(SHA256.HashData(
         Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new
-        { requisito.Titulo, requisito.Descricao, requisito.Tipo, requisito.Status }))));
+        { requisito.Titulo, requisito.Descricao, requisito.Tipo, requisito.Status, requisito.VersaoConcorrencia }))));
 
-    private Task<int> UltimaAnalise(int requisitoId, CancellationToken ct) => context.AnalisesRequisitos
+    private Task<int> UltimaAnalise(int requisitoId, CancellationToken ct) => MinhasAnalises
         .Where(a => a.RequisitoId == requisitoId).OrderByDescending(a => a.DataAnalise)
         .ThenByDescending(a => a.Id).Select(a => a.Id).FirstOrDefaultAsync(ct);
 
     [HttpGet]
     public async Task<IActionResult> Revisar(int id, int indice, CancellationToken cancellationToken)
     {
-        var analise = await context.AnalisesRequisitos.AsNoTracking().Include(a => a.Requisito)
+        var analise = await MinhasAnalises.AsNoTracking().Include(a => a.Requisito)
             .Include(a => a.Decisoes).FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
         if (analise is null) return NotFound();
         var problemas = analise.ObterResultado().Problemas;
@@ -86,7 +92,7 @@ public class RequisitosController(RequisitosContext context, ILogger<RequisitosC
     {
         // A decisão, o texto e o status são gravados juntos. A transação serializa revisões concorrentes no SQLite.
         await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
-        var analise = await context.AnalisesRequisitos.Include(a => a.Requisito).Include(a => a.Decisoes)
+        var analise = await MinhasAnalises.Include(a => a.Requisito).Include(a => a.Decisoes)
             .FirstOrDefaultAsync(a => a.Id == dados.AnaliseId, cancellationToken);
         if (analise is null) return NotFound();
         var problemas = analise.ObterResultado().Problemas;
@@ -117,9 +123,11 @@ public class RequisitosController(RequisitosContext context, ILogger<RequisitosC
         };
         var revisaoConcluida = analise.Decisoes.Count + 1 == problemas.Count;
         context.DecisoesSugestoes.Add(decisao);
+        // Toda decisão invalida formulários e análises abertos anteriormente, mesmo sem alteração de texto.
+        context.Entry(analise.Requisito).Property(r => r.VersaoConcorrencia).IsModified = true;
         if (decisao.RedacaoFinal is not null) analise.Requisito.Descricao = decisao.RedacaoFinal;
-        if (revisaoConcluida)
-            analise.Requisito.Status = StatusRequisito.Revisado;
+        analise.Requisito.Status = revisaoConcluida
+            ? StatusRequisito.Revisado : StatusRequisito.EmAnalise;
         try
         {
             await context.SaveChangesAsync(cancellationToken);
@@ -131,14 +139,16 @@ public class RequisitosController(RequisitosContext context, ILogger<RequisitosC
             ModelState.AddModelError("", "Não foi possível salvar a decisão. Reabra a revisão pelo histórico e tente novamente.");
             return View(dados);
         }
-        TempData["Sucesso"] = "Decisão registrada com sucesso.";
+        TempData["Sucesso"] = revisaoConcluida
+            ? "Todas as sugestões foram avaliadas. O requisito foi marcado automaticamente como Revisado."
+            : "Decisão registrada com sucesso.";
         return RedirectToAction(nameof(Historico), new { id = analise.RequisitoId });
     }
 
     [HttpGet]
     public async Task<IActionResult> Analisar(int id, CancellationToken cancellationToken)
     {
-        var requisito = await context.Requisitos.AsNoTracking()
+        var requisito = await MeusRequisitos.AsNoTracking()
             .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
         return requisito is null ? NaoEncontrado() : View(new AnaliseRequisitoViewModel { Requisito = requisito });
     }
@@ -147,7 +157,7 @@ public class RequisitosController(RequisitosContext context, ILogger<RequisitosC
     public async Task<IActionResult> Analisar(int id, [FromServices] AnaliseRequisitoService analise,
         CancellationToken cancellationToken)
     {
-        var requisito = await context.Requisitos.AsNoTracking()
+        var requisito = await MeusRequisitos.AsNoTracking()
             .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
         if (requisito is null) return NaoEncontrado();
 
@@ -155,6 +165,11 @@ public class RequisitosController(RequisitosContext context, ILogger<RequisitosC
         {
             var resultado = await analise.AnalisarAsync(requisito, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
+            await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+            var atual = await MeusRequisitos.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+            if (atual is null) return NotFound();
+            if (atual.VersaoConcorrencia != requisito.VersaoConcorrencia)
+                return Conflict("O requisito mudou durante a análise. Abra novamente e tente outra vez.");
             context.AnalisesRequisitos.Add(new AnaliseRequisito
             {
                 RequisitoId = requisito.Id,
@@ -165,7 +180,11 @@ public class RequisitosController(RequisitosContext context, ILogger<RequisitosC
                 TokensTotal = resultado.UsoTokens?.Total
             });
             await context.SaveChangesAsync(cancellationToken);
-            return View(new AnaliseRequisitoViewModel { Requisito = requisito, Resultado = resultado });
+            atual.Status = StatusRequisito.EmAnalise;
+            context.Entry(atual).Property(r => r.VersaoConcorrencia).IsModified = true;
+            await context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return View(new AnaliseRequisitoViewModel { Requisito = atual, Resultado = resultado });
         }
         catch (AnaliseRequisitoException ex)
         {
@@ -183,8 +202,13 @@ public class RequisitosController(RequisitosContext context, ILogger<RequisitosC
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("Titulo,Descricao,Tipo,Status")] Requisito requisito)
+    public async Task<IActionResult> Create([Bind("Titulo,Descricao,Tipo")] Requisito requisito)
     {
+        if (string.IsNullOrEmpty(UsuarioId)) return Challenge();
+        requisito.ProprietarioId = UsuarioId;
+        requisito.Status = StatusRequisito.Pendente;
+        ModelState.Remove(nameof(Requisito.ProprietarioId));
+        ModelState.Remove(nameof(Requisito.Status));
         if (!ModelState.IsValid) return View(requisito);
         requisito.Titulo = requisito.Titulo.Trim();
         requisito.Descricao = requisito.Descricao.Trim();
@@ -197,18 +221,22 @@ public class RequisitosController(RequisitosContext context, ILogger<RequisitosC
 
     public async Task<IActionResult> Edit(int id)
     {
-        var requisito = await context.Requisitos.FindAsync(id);
+        var requisito = await MeusRequisitos.FirstOrDefaultAsync(r => r.Id == id);
         return requisito is null ? NaoEncontrado() : View(requisito);
     }
 
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(int id, [Bind("Titulo,Descricao,Tipo,Status")] Requisito dados)
     {
-        var requisito = await context.Requisitos.FindAsync(id);
+        var requisito = await MeusRequisitos.FirstOrDefaultAsync(r => r.Id == id);
         if (requisito is null) return NaoEncontrado();
+        if (!TokenDoFormularioCorresponde(requisito.VersaoConcorrencia, out var token))
+            return Conflict("O requisito mudou. Reabra a edição.");
+        dados.VersaoConcorrencia = token!;
+        ModelState.Remove(nameof(Requisito.ProprietarioId));
         if (dados.Status == StatusRequisito.Revisado)
         {
-            var ultima = await context.AnalisesRequisitos.AsNoTracking().Include(a => a.Decisoes)
+            var ultima = await MinhasAnalises.AsNoTracking().Include(a => a.Decisoes)
                 .Where(a => a.RequisitoId == id).OrderByDescending(a => a.DataAnalise)
                 .ThenByDescending(a => a.Id).FirstOrDefaultAsync();
             if (ultima is not null && ultima.Decisoes.Count < ultima.ObterResultado().Problemas.Count)
@@ -226,31 +254,46 @@ public class RequisitosController(RequisitosContext context, ILogger<RequisitosC
 
     public async Task<IActionResult> Delete(int id)
     {
-        var requisito = await context.Requisitos.AsNoTracking().FirstOrDefaultAsync(r => r.Id == id);
+        var requisito = await MeusRequisitos.AsNoTracking().FirstOrDefaultAsync(r => r.Id == id);
         return requisito is null ? NaoEncontrado() : View(requisito);
     }
 
     [HttpPost, ActionName("Delete"), ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteConfirmed(int id)
+    public async Task<IActionResult> DeleteConfirmed(int id, string? versaoConcorrencia)
     {
-        var requisito = await context.Requisitos.FindAsync(id);
+        await using var transaction = await context.Database.BeginTransactionAsync();
+        var requisito = await MeusRequisitos.FirstOrDefaultAsync(r => r.Id == id);
         if (requisito is null) return NaoEncontrado();
-        if (await context.AnalisesRequisitos.AnyAsync(a => a.RequisitoId == id))
+        if (!TokenDoFormularioCorresponde(requisito.VersaoConcorrencia, out _))
+            return Conflict("O requisito mudou. Reabra a confirmação de exclusão.");
+        if (await MinhasAnalises.AnyAsync(a => a.RequisitoId == id))
         {
             TempData["Erro"] = "Este requisito possui histórico de análises e não pode ser excluído, para preservar o histórico original.";
             return RedirectToAction(nameof(Details), new { id });
         }
         context.Remove(requisito);
         if (!await Salvar()) return View("Delete", requisito);
+        await transaction.CommitAsync();
         TempData["Sucesso"] = "Requisito excluído com sucesso.";
         return RedirectToAction(nameof(Index));
     }
 
-    private IActionResult NaoEncontrado()
+    // O model binding converte o vazio legado em null. Leia somente o campo literal
+    // do formulário, sem aceitar ausência, múltiplos valores ou normalização.
+    private bool TokenDoFormularioCorresponde(string? armazenado, out string? token)
     {
-        TempData["Erro"] = "Requisito não encontrado. Ele pode ter sido excluído.";
-        return RedirectToAction(nameof(Index));
+        token = null;
+        if (!Request.HasFormContentType ||
+            !Request.Form.TryGetValue(nameof(Requisito.VersaoConcorrencia), out var valores) ||
+            valores.Count != 1)
+            return false;
+        token = valores[0];
+        return token is not null &&
+            (token.Length == 0 || !string.IsNullOrWhiteSpace(token)) &&
+            string.Equals(token, armazenado, StringComparison.Ordinal);
     }
+
+    private IActionResult NaoEncontrado() => NotFound();
 
     private async Task<bool> Salvar()
     {

@@ -38,7 +38,7 @@
             <label asp-for="Confirmacao" class="form-check-label">Confirmo esta decisão e, ao aceitar ou ajustar, que a redação final está completa e validada por mim.</label>
             <span asp-validation-for="Confirmacao"></span>
         </div>
-        <p class="text-muted">A decisão confirmada ficará registrada e não poderá ser alterada. O status será atualizado para Revisado somente após todas as sugestões desta análise terem decisões.</p>
+        <p class="text-muted">A decisão confirmada ficará registrada e não poderá ser alterada. Aceitar, Ajustar e Descartar contam igualmente como avaliações concluídas. Enquanto houver sugestões pendentes da análise mais recente, o requisito fica Em análise. Ao confirmar a última decisão, ele passa automaticamente para Revisado. Esse status representa a conclusão da revisão humana e não garante a qualidade absoluta do requisito.</p>
         <div class="action-bar"><button type="submit" class="btn btn-primary">Confirmar decisão</button>
         <a asp-action="Historico" asp-route-id="@Model.Requisito.Id" class="btn btn-outline-secondary">Cancelar</a></div>
     </form>

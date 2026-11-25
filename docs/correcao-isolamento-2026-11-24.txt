@@ -1,0 +1,171 @@
+REQUISITA+ — CORREÇÃO DE STATUS E ISOLAMENTO
+
+Situação: código implementado e validado em ambiente isolado. Nenhuma migration
+ou associação de proprietário aplicada ao banco real. Não iniciar a aplicação
+principal contra o banco real antes do procedimento autorizado de implantação.
+
+CORREÇÕES
+
+Cadastro força Pendente no servidor e ignora status/proprietário enviados.
+O proprietário vem exclusivamente do identificador autenticado do Identity.
+Dashboard, indicadores, recentes, listagem, pesquisa, filtros e operações por ID
+usam o proprietário; análises e decisões são autorizadas pelo requisito pai.
+Registros de terceiros, inexistentes ou sem proprietário retornam 404 nos
+endpoints por ID. O POST de análise autoriza antes de acessar o serviço Gemini.
+O cadastro de uma nova conta não atribui nem transfere registros legados.
+
+Análise válida, inclusive sem sugestões, é inserida antes da atualização para
+EmAnalise, dentro da mesma transação. Falhas/cancelamentos desfazem a operação.
+Reanálise de requisito revisado reabre o status, mantendo análises, sugestões
+e decisões anteriores. As regras de conclusão humana continuam vigentes.
+
+VersaoConcorrencia é token do EF e muda a cada alteração do requisito. Decisões
+e análises também o renovam. A análise compara a versão antes/depois da chamada
+simulada/externa; edições e exclusões conferem a versão do formulário. Assim,
+uma resposta baseada em requisito alterado não é gravada silenciosamente.
+
+ARQUIVOS ALTERADOS OU CRIADOS
+
+Controllers/HomeController.cs
+Controllers/RequisitosController.cs
+Models/Requisito.cs
+Data/RequisitosContext.cs
+Data/RequisitosContextFactory.cs (ferramentas EF usam SQLite em memória)
+Views/Requisitos/_Form.cshtml
+Views/Requisitos/Delete.cshtml
+Views/Home/Ajuda.cshtml (instruções corrigidas, sem mudança estética)
+tools/LibrarySeed/Program.cs
+tools/PasswordRecoveryChecks/Program.cs (fixture sintética com proprietário)
+tools/IsolationChecks/IsolationChecks.csproj
+tools/IsolationChecks/Program.cs
+Migrations/RequisitosContextModelSnapshot.cs
+Migrations/20261125003912_AdicionarPropriedadeOpcional.cs e .Designer.cs
+Migrations/20261125003928_TornarPropriedadeObrigatoria.cs e .Designer.cs
+docs/correcao-isolamento-2026-11-24.txt
+
+MIGRATIONS
+
+1. 20261125003912_AdicionarPropriedadeOpcional
+   Adiciona ProprietarioId anulável, índice, FK para AspNetUsers com Restrict e
+   token VersaoConcorrencia. Não escolhe proprietário e não recalcula status.
+2. 20261125003928_TornarPropriedadeObrigatoria
+   Recusa registros com proprietário nulo, vazio ou inexistente antes de tornar
+   a coluna obrigatória. Não preenche automaticamente o proprietário.
+
+RESULTADOS FINAIS
+
+Build principal: aprovado, 0 avisos, 0 erros.
+EF has-pending-model-changes: nenhuma divergência entre modelo e snapshot.
+git diff --check: aprovado (apenas avisos informativos de LF/CRLF).
+IsolationChecks: 123 verificações aprovadas, 0 reprovadas.
+PasswordRecoveryChecks: 95 verificações aprovadas, 0 reprovadas.
+LibrarySeed --validate-catalog: 33 verificações aprovadas, 0 reprovadas.
+Total da execução final: 251 verificações aprovadas, 0 reprovadas.
+Chamadas reais à Gemini: 0. SMTP simulado nos testes de recuperação.
+Nenhuma nova dependência instalada; referências restauradas do cache local,
+usando fonte local vazia. Sem git add, commit ou push.
+
+Testes incluem duas contas e requisições HTTP autenticadas com antiforgery;
+GET/POST indevidos; adulteração de campos; dashboard zerado; indicadores e
+filtros por proprietário; falhas HTTP/JSON/rede/timeout; falha no INSERT e no
+UPDATE; cancelamento antes e após INSERT; edição e análises concorrentes;
+revisão humana parcial/completa; formulário antigo; histórico imutável;
+exclusão com histórico bloqueada; exclusão legítima de fixture sintética;
+LibrarySeed exigindo proprietário, simulação e carga só em banco sintético.
+
+Evidências da suíte final:
+.local/isolation-34e997e8db5d4729b1586016544dace4/results.json
+.local/isolation-34e997e8db5d4729b1586016544dace4/migration-result.json
+
+BACKUP E DIFERENÇAS ANTERIORES À IMPLEMENTAÇÃO
+
+Aplicação encerrada confirmada por inspeção de processos antes do backup.
+Backup adicional consistente, validado por conteúdo e integridade:
+.local/backups/pre-ownership-2026-11-25T00-38-08-919Z/requisita-plus.db
+O nome usa UTC; a criação ocorreu na noite de 24/11 no horário de São Paulo.
+SHA256 do backup:
+65cb43f96b70dd61d8aff003eb838d0efadb1b27fee1f8240ea49fafc2ca2633
+
+Comparação com o backup definitivo de 24/11:
+                         Definitivo   Atual
+Requisitos                      100     100
+Análises                         30      31
+Sugestões (no JSON)               72      73
+Decisões humanas                 18      18
+
+Os 100 requisitos, as 30 análises e as 18 decisões originais têm os mesmos IDs,
+conteúdos e vínculos; as 72 sugestões originais estão no JSON preservado.
+Foi adicionada 1 análise contendo 1 sugestão. Há 1 conta adicional e alteração
+em 1 conta preexistente; os dados pessoais dessas contas não são publicados.
+Nenhum registro foi automaticamente excluído ou corrigido.
+
+Na cópia, a primeira migration preservou todas as colunas preexistentes.
+A segunda falhou corretamente antes da associação. Foi criada exclusivamente
+na cópia uma conta sintética explicitamente nomeada, sem inferir a identidade
+do proprietário original. Após associação sintética, a segunda migration e
+sua repetição passaram. PRAGMA integrity_check=ok, foreign_key_check sem linhas.
+As contagens 100/31/73/18 e todos os valores originais foram preservados.
+A tentativa de excluir o proprietário sintético foi bloqueada pela FK.
+
+PRESERVAÇÃO DO BANCO REAL
+
+SHA256 do arquivo real antes/depois:
+6be4196c5dce2b39ece48c09da23793ac903034f2374189e43a256878d3269a6
+O banco real mantém o mesmo conteúdo e schema. Não houve migration, associação
+ou execução da aplicação principal contra ele. O .db definitivo e seus arquivos
+WAL/SHM também mantêm os hashes iniciais. Os demais backups não foram abertos.
+
+Ocorrência: a abertura inicial do SQLite em modo ReadOnly criou no banco real
+um WAL vazio e um SHM. Isso não alterou o arquivo .db nem dados persistidos.
+Não removi esses arquivos. A comparação final verifica .db e WAL; leituras
+posteriores para ensaio usam somente cópias. O SHM do backup definitivo não
+mudou (corrigindo a hipótese inicialmente comunicada durante a execução).
+
+Evidências locais sem exposição de conteúdo pessoal:
+.local/backups/pre-ownership-2026-11-25T00-38-08-919Z/audit.json
+.local/backups/pre-ownership-2026-11-25T00-38-08-919Z/verification.json
+
+REPRODUÇÃO EM AMBIENTE ISOLADO
+
+Na raiz do repositório, com dependências já disponíveis:
+dotnet build --no-restore
+dotnet build tools/LibrarySeed --no-restore
+dotnet run --project tools/IsolationChecks --no-restore -- .local/backups/pre-ownership-2026-11-25T00-38-08-919Z/requisita-plus.db
+dotnet run --project tools/PasswordRecoveryChecks --no-restore
+dotnet run --project tools/LibrarySeed --no-restore -- --validate-catalog
+
+IsolationChecks possui host próprio e banco SQLite próprio; não executa o
+Program da aplicação, não carrega appsettings/User Secrets e usa transporte
+Gemini inteiramente simulado. O ensaio aceita apenas o caminho de um backup
+adicional pre-ownership, cria outra cópia e associa apenas nela a conta sintética.
+Não executar antigos scripts auxiliares contra o banco real.
+
+PROCEDIMENTO PROPOSTO PARA O BANCO REAL — AINDA NÃO AUTORIZADO
+
+1. Obter autorização explícita para as migrations e para o mapeamento exato dos
+   IDs de requisitos à conta original, identificada de forma privada e inequívoca.
+   Não usar o primeiro usuário, o usuário da sessão nem autores das decisões.
+2. Manter aplicação encerrada. Reconfirmar processos e ausência de escritores.
+   Criar nova cópia consistente sem abrir backups antigos diretamente; copiar
+   o conjunto DB/WAL para área isolada e verificar hashes de origem antes/depois.
+   Validar a cópia, guardar hashes e testar a restauração em área isolada.
+3. Registrar baseline de IDs/conteúdo/vínculos e contagens atuais. Reavaliar
+   quaisquer mudanças desde este relatório, sem apagar testes manuais.
+4. Aplicar apenas a primeira migration ao caminho de banco explicitamente
+   autorizado. A factory de design não seleciona o banco real automaticamente.
+5. Com o mapeamento aprovado, preencher somente ProprietarioId em transação,
+   por IDs explícitos e parâmetros. Conferir existência da conta, número de
+   registros e associação anterior; não substituir proprietários existentes.
+   Não alterar status, descrições, JSONs, análises ou autoria histórica.
+6. Validar todas as associações e a ausência de proprietários nulos/inválidos.
+   Aplicar a segunda migration. Conferir integridade, FKs e valores preexistentes.
+7. Validar os dois usuários e o dashboard da nova conta antes da apresentação,
+   usando Gemini simulada ou sem solicitar análise real nesta validação.
+8. Somente então liberar a aplicação principal. Não há migrations automáticas
+   na inicialização. O código novo é incompatível com o schema real antigo.
+
+Não usar Down como recuperação automática: remover a coluna perderia o vínculo
+de propriedade. Em caso de falha, manter a aplicação parada e recuperar a cópia
+consistente mais recente, com procedimento autorizado e sem sobrescrever backups.
+O backup definitivo antigo não contém a análise adicional e não deve substituir
+o estado atual por conveniência. A aplicação do mapeamento real segue pendente.

@@ -228,6 +228,10 @@ namespace RequisitaPlus.Web.Migrations
                         .HasMaxLength(5000)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("ProprietarioId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
 
@@ -239,7 +243,14 @@ namespace RequisitaPlus.Web.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("VersaoConcorrencia")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("ProprietarioId");
 
                     b.ToTable("Requisitos");
                 });
@@ -291,6 +302,17 @@ namespace RequisitaPlus.Web.Migrations
                         .IsRequired();
 
                     b.Navigation("AnaliseRequisito");
+                });
+
+            modelBuilder.Entity("RequisitaPlus.Web.Models.Requisito", b =>
+                {
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", "Proprietario")
+                        .WithMany()
+                        .HasForeignKey("ProprietarioId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Proprietario");
                 });
 
             modelBuilder.Entity("RequisitaPlus.Web.Models.AnaliseRequisito", b =>

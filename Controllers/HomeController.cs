@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,7 +15,10 @@ public class HomeController(RequisitosContext context) : Controller
     [HttpGet("/Home/Index")]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
-        var requisitos = context.Requisitos.AsNoTracking();
+        var usuarioId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(usuarioId)) return Challenge();
+        var requisitos = context.Requisitos.AsNoTracking()
+            .Where(r => r.ProprietarioId != null && r.ProprietarioId == usuarioId);
         var totais = await requisitos.GroupBy(r => r.Status)
             .Select(g => new { Status = g.Key, Quantidade = g.Count() })
             .ToListAsync(cancellationToken);

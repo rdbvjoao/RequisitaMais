@@ -1,0 +1,158 @@
+REQUISITA+ — CONCLUSÃO AUTOMÁTICA DA REVISÃO HUMANA — 25/11/2026
+
+Situação final: implementação pontual concluída e validada em bancos isolados.
+A aplicação principal estava encerrada no início e permaneceu encerrada ao
+final. As linhas de comando dos processos .NET mostraram somente VS Code e
+MSBuild. Aguardar autorização para iniciar a aplicação e fazer testes manuais.
+
+Implementação e regras
+
+A implementação recebida já marcava a última decisão como Revisado na mesma
+transação da decisão e da redação final. Essa lógica foi preservada. A mudança
+pontual torna explícito o status EmAnalise nas decisões parciais e apresenta a
+mensagem específica somente depois de SaveChanges e Commit bem-sucedidos.
+Aceitar, Ajustar e Descartar contam igualmente para concluir uma sugestão.
+
+Fluxo preservado:
+- Cadastro começa Pendente.
+- Análise bem-sucedida e salva passa para EmAnalise, mesmo sem sugestões ou se
+  o requisito estava Revisado. Falhas preservam o estado anterior.
+- Decisão parcial da análise mais recente deixa o requisito EmAnalise.
+- Última decisão pendente da análise mais recente conclui automaticamente
+  Revisado, com a mesma transação e renovação de GUID já existentes.
+- Sem sugestões, EmAnalise permanece até conclusão humana pela edição.
+- Análises antigas são somente consultadas; POST antigo é recusado sem gravar.
+- Alterações manuais de status continuam disponíveis pelas regras anteriores,
+  com bloqueio de Revisado se houver sugestões pendentes. Se o usuário escolher
+  Pendente manualmente e depois registrar uma decisão parcial, a revisão retorna
+  a EmAnalise. Não houve recálculo de requisitos existentes.
+
+Segurança e consistência
+
+Foram preservados os filtros de proprietário, antiforgery, comparação de versão
+da revisão, conferência da análise mais recente, índice único de decisões,
+IsConcurrencyToken do EF e renovação de GUID em cada decisão, inclusive Descartar.
+A correção do token vazio legado em Edit/Delete permaneceu byte a byte intacta.
+Falhas de INSERT, UPDATE, conflito real na comparação SQL do token original do
+EF e cancelamento após SaveChanges foram simulados: nenhuma alteração parcial
+persistiu em status, texto, GUID, análises ou decisões. Reenvio com formulário
+atualizado após a falha concluiu normalmente.
+
+Arquivos alterados nesta etapa
+
+Controllers/RequisitosController.cs
+Views/Home/Ajuda.cshtml
+Views/Requisitos/Analisar.cshtml
+Views/Requisitos/Historico.cshtml
+Views/Requisitos/Revisar.cshtml
+tools/IsolationChecks/Program.cs
+tools/IsolationChecks/HumanReviewRegression.cs (novo)
+docs/conclusao-revisao-humana-2026-11-25.txt (este relatório)
+
+O harness passou a aceitar --no-migrations: cria apenas schema sintético com
+EnsureCreated e ignora os ensaios de migrations. --skip-library-seed foi
+preservado. Não foram instaladas dependências nem modificados modelos,
+contexto, snapshot ou migrations. Os hashes dos demais arquivos existentes,
+incluindo correções anteriores, permaneceram idênticos ao início desta etapa.
+As mudanças anteriores ainda aparecem no git diff contra HEAD e foram mantidas.
+
+Backup e banco real
+
+Novo backup consistente e validado:
+.local/backups/pre-human-review-2026-11-25T10-14-01-980Z/requisita-plus.db
+SHA-256 do backup lógico:
+1a71911727f20e357b36f2f8a087a38983a4988d5ee6b2648c395ecd12c4fb8b
+
+SHA-256 do banco real, idêntico antes/depois desta etapa:
+a7b08952794ca5b68c8324961ada02726ded613a115e1c8224a682b7596ec82c
+
+Contagens iniciais/finais: 101 requisitos, 32 análises, 18 decisões, 3 usuários,
+6 registros em __EFMigrationsHistory. integrity_check: ok; foreign_key_check:
+nenhuma violação. WAL, SHM e journal ausentes antes e depois; nenhum foi
+excluído manualmente. Backups anteriores foram somente lidos/copiados.
+
+manifest.json registra hashes e contagens iniciais. verification.json registra
+a conferência final. original.db preserva os bytes físicos da origem e
+final-integrity-copy.db foi usada para integridade sem abrir a origem via SQLite.
+O backup lógico tem hash próprio por ser gerado pela API de backup do SQLite.
+
+Observação sobre o ID 103: no início desta etapa ele já estava EmAnalise com
+GUID. O banco atual difere do capturado na etapa anterior, por isso foi criado
+novo baseline. Não foi alterado nesta execução. A regressão do defeito legado
+usou uma cópia do backup anterior validado em que o ID 103 ainda tinha vazio.
+
+Resultados automatizados
+
+IsolationChecks: 449 verificações aprovadas, zero reprovadas:
+- 102 verificações anteriores de isolamento/status/concorrência;
+- 173 verificações da correção dos tokens legados;
+- 174 novas verificações da conclusão da revisão humana.
+PasswordRecoveryChecks: 95 aprovadas, zero reprovadas.
+GeminiChecks: 40 aprovadas, zero reprovadas, HTTP simulado.
+EmailChecks: 9 aprovadas, zero reprovadas, sem SMTP externo.
+Total contabilizado: 593 verificações aprovadas, zero reprovadas.
+
+Por restrição expressa, não foram reexecutadas 16 verificações que aplicam
+migrations, 5 que invocam LibrarySeed e 33 de seu catálogo. Não se afirma
+revalidação dessas 54 verificações nesta etapa. Nenhuma migration foi executada,
+nem em bancos de teste. Todo acesso de escrita dos testes ocorreu em bancos
+temporários/cópias isoladas; nenhum dado real foi excluído ou alterado.
+
+Cobertura adicional da revisão humana
+
+Matrizes HTTP autenticadas com três sugestões todas Aceitar, todas Ajustar,
+todas Descartar e combinação dos três tipos; análise de uma sugestão para cada
+tipo de decisão. Após cada decisão: status esperado, texto humano correto,
+GUID renovado, autoria, histórico acumulado e JSON original preservado.
+A mensagem específica aparece somente na conclusão da última sugestão.
+
+Também verificados: alteração manual permitida para Pendente; decisão parcial
+retorna EmAnalise; Revisado manual bloqueado enquanto houver pendências;
+formulários simultâneos de revisão; reenvio duplicado; edição interveniente;
+GET/POST de análise antiga; GET/POST alheio com hash de versão correto;
+antiforgery da última decisão; falhas no INSERT e UPDATE, conflito EF e
+cancelamento após gravação mas antes da confirmação da transação.
+
+Suítes anteriores preservaram análise sem sugestões e conclusão manual,
+reanálise de Revisado, falhas de Gemini/armazenamento/cancelamento, concorrência
+entre contextos, proteção do histórico, tokens vazios/GUID, formulário de edição
+reapresentado, token ausente/duplicado/adulterado/espaços/obsoleto e edição do
+ID 103 legado. Todas as chamadas à Gemini foram simuladas.
+
+Textos informativos
+
+Mensagem exata após a última decisão salva e confirmada:
+"Todas as sugestões foram avaliadas. O requisito foi marcado automaticamente
+como Revisado."
+
+Ajuda esclarece que Aceitar, Ajustar e Descartar contam igualmente; pendências
+mantêm a revisão Em análise; salvar a última decisão conclui Revisado; análises
+antigas não controlam o status atual e, sem sugestões, a conclusão é pela edição.
+Analisar, Histórico e Revisar explicam a conclusão automática e que Revisado
+representa a conclusão da revisão humana, sem garantia absoluta de qualidade.
+O padrão visual e os textos anteriores sobre falha/zero sugestões foram mantidos.
+
+Validação final
+
+dotnet build --no-restore: êxito, zero erros e zero avisos.
+Build do harness: êxito, zero erros e zero avisos.
+Database.HasPendingModelChanges(): false, conferido em cópia isolada.
+git diff --check: aprovado; somente mensagens informativas de LF/CRLF.
+Diff e hashes revisados: escopo restrito aos arquivos acima. Sem alterações
+estruturais, migrations, execução de LibrarySeed, dependências novas, chamadas
+reais à Gemini, git add/commit/push ou envio ao GitHub. Sem risco adicional ou
+problema fora do escopo identificado; testes manuais pendem de autorização.
+
+Evidências locais
+
+.local/review-safety.cjs
+.local/review-isolation-results.txt
+.local/review-password-results.txt
+.local/review-gemini-results.txt
+.local/review-email-results.txt
+.local/isolation-bf602d7dc0e644debf88a9fe9f475318/results.json
+.local/backups/pre-human-review-2026-11-25T10-14-01-980Z/manifest.json
+.local/backups/pre-human-review-2026-11-25T10-14-01-980Z/verification.json
+
+Comando de reprodução sem migrations e sem LibrarySeed:
+dotnet run --project tools/IsolationChecks/IsolationChecks.csproj --no-build --no-restore -- .local/backups/pre-ownership-2026-11-25T00-38-08-919Z/requisita-plus.db .local/backups/pre-legacy-concurrency-2026-11-25T09-58-57-520Z/requisita-plus.db --skip-library-seed --no-migrations
